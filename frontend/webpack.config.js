@@ -20,6 +20,10 @@ module.exports = {
                     },
                 },
             },
+            {
+                test: /\.css$/, // 👈 CSSファイルを処理
+                use: ["style-loader", "css-loader"], 
+            },
         ],
     },
     resolve: {

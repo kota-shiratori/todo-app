@@ -24,7 +24,7 @@ const App = () => {
 
   return (
     <div className="container">
-      <h1>📝 洗練された Todo アプリ</h1>
+      <h1>📝 Todo アプリ</h1>
       <div className="input-container">
         <input type="text" placeholder="新しいタスク..." value={task} onChange={(e) => setTask(e.target.value)} />
         <button onClick={addTodo}>追加</button>
