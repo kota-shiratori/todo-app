@@ -9,6 +9,13 @@ services:
       - ./backend:/app
     environment:
       - NODE_ENV=development
+      - DB_HOST=mysql
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=todos
+    depends_on:
+      - mysql
+    restart: always
     command: ["node", "index.js"]
 
   frontend:
@@ -20,3 +27,18 @@ services:
     environment:
       - NODE_ENV=development
     command: ["npm", "run", "start"]
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: todos
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
