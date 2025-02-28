@@ -6,9 +6,9 @@ const API_URL = "http://localhost:5000/todos";
 const App = () => {
   const [task, setTask] = useState("");
   const [todos, setTodos] = useState([]);
-  const [sortOrder, setSortOrder] = useState("desc"); // デフォルトは新しい順
+  const [sortOrder, setSortOrder] = useState("desc");
 
-  // ✅ Todoリストを取得
+  // Todoリストを取得
   const fetchTodos = async () => {
     try {
       const res = await fetch(`${API_URL}?sort=${sortOrder}`);
@@ -20,12 +20,12 @@ const App = () => {
     }
   };
 
-  // ✅ 初回 & ソート変更時にTodoを取得
+  // 初回 & ソート変更時にTodoを取得
   useEffect(() => {
     fetchTodos();
   }, [sortOrder]);
 
-  // ✅ Todoを追加
+  // Todoを追加
   const addTodo = () => {
     if (task.trim() === "") return;
 
@@ -44,7 +44,7 @@ const App = () => {
     setTask(""); // 入力欄をクリア
   };
 
-  // ✅ Todoの完了状態を切り替え
+  // Todoの完了状態を切り替え
   const toggleTodo = async (id) => {
     try {
       const res = await fetch(`${API_URL}/${id}/toggle`, {
@@ -55,16 +55,16 @@ const App = () => {
       if (!res.ok) throw new Error("サーバーエラー");
 
       const updatedTodo = await res.json();
-      console.log("🟢 更新されたTodo:", updatedTodo); // ✅ レスポンス確認用
+      console.log("🟢 更新されたTodo:", updatedTodo); // レスポンス確認用
 
-      // ✅ リストを更新
+      // リストを更新
       setTodos((prevTodos) => prevTodos.map((todo) => (todo.id === id ? { ...todo, completed: updatedTodo.completed } : todo)));
     } catch (err) {
       console.error("完了状態の更新エラー:", err);
     }
   };
 
-  // ✅ Todoを削除
+  // Todoを削除
   const deleteTodo = (id) => {
     fetch(`${API_URL}/${id}`, { method: "DELETE" })
       .then(() => setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== id)))

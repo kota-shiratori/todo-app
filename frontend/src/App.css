@@ -93,13 +93,13 @@ input {
     background: #f9f9f9;
 }
 
-/* ✅ 完了済みのタスク */
+/* 完了済みのタスク */
 .todo-list li.completed {
     text-decoration: line-through;
     color: #aaa;
 }
 
-/* ❌ 削除ボタン */
+/* 削除ボタン */
 .delete-btn {
     background: transparent;
     border: none;
