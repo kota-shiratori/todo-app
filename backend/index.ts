@@ -1,11 +1,11 @@
-require("dotenv").config();
-const express = require("express");
-const mysql = require("mysql2");
-const cors = require("cors");
+import dotenv from "dotenv";
+import express, { Request, Response } from "express";
+import mysql from "mysql2";
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
 
 const dbConfig = {
     host: process.env.DB_HOST || "localhost",
@@ -14,24 +14,22 @@ const dbConfig = {
     database: process.env.DB_NAME || "todos",
 };
 
+const db = mysql.createConnection(dbConfig);
+
 // MySQL 接続リトライ処理
-let db;
 const connectWithRetry = () => {
-    db = mysql.createConnection(dbConfig);
     db.connect((err) => {
         if (err) {
-            console.error("MySQL接続エラー。5秒後に再試行:", err);
-            setTimeout(connectWithRetry, 5000); // 5秒後にリトライ
+            console.error("MySQL接続エラー", err);
+            setTimeout(connectWithRetry, 5000);
         } else {
             console.log("MySQLに接続成功！");
-
-            // テーブル作成
             db.query(
                 `CREATE TABLE IF NOT EXISTS todos (
-          id INT AUTO_INCREMENT PRIMARY KEY,
-          text VARCHAR(255) NOT NULL,
-          completed BOOLEAN DEFAULT false
-        );`,
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        text VARCHAR(255) NOT NULL,
+        completed BOOLEAN DEFAULT false
+      );`,
                 (err) => {
                     if (err) console.error("テーブル作成エラー:", err);
                 }
@@ -40,38 +38,36 @@ const connectWithRetry = () => {
     });
 };
 
-// MySQL接続を開始
 connectWithRetry();
 
-// Todo一覧取得API（ソート順を追加）
-app.get("/todos", (req, res) => {
-    const sortOrder = req.query.sort === "asc" ? "ASC" : "DESC"; // クエリパラメータでソート指定
+// CORS対応
+import cors from "cors";
+app.use(cors());
+
+// Todoリスト取得
+app.get("/", (req: Request, res: Response) => {
+    const sortOrder = req.query.sort === "asc" ? "ASC" : "DESC";
     db.query(`SELECT * FROM todos ORDER BY completed ASC, id ${sortOrder}`, (err, results) => {
         if (err) return res.status(500).json({ error: err });
         res.json(results);
     });
 });
 
-
-// Todo追加API
-app.post("/todos", (req, res) => {
+// Todo追加
+app.post("/todos", (req: Request, res: Response) => {
     const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "テキストが必要です" });
-
     db.query("INSERT INTO todos (text, completed) VALUES (?, false)", [text], (err, result) => {
         if (err) return res.status(500).json({ error: err });
 
-        // 追加後、最新のデータを取得して返す
-        db.query("SELECT * FROM todos WHERE id = ?", [result.insertId], (err, newTodo) => {
+        db.query("SELECT * FROM todos WHERE id = ?", [result.insertId], (err, rows) => {
             if (err) return res.status(500).json({ error: err });
-            res.json(newTodo[0]); // フロントに返す
+            res.json(rows[0]);
         });
     });
 });
 
-
-// Todo削除API
-app.delete("/todos/:id", (req, res) => {
+// Todo削除
+app.delete("/todos/:id", (req: Request, res: Response) => {
     const { id } = req.params;
     db.query("DELETE FROM todos WHERE id = ?", [id], (err) => {
         if (err) return res.status(500).json({ error: err });
@@ -79,27 +75,20 @@ app.delete("/todos/:id", (req, res) => {
     });
 });
 
-// `completed` を切り替えるAPI
-app.put("/todos/:id/toggle", (req, res) => {
+// Todo完了状態切り替え
+app.patch("/todos/:id/toggle", (req: Request, res: Response) => {
     const { id } = req.params;
-
-    // 現在の `completed` の値を取得
     db.query("SELECT completed FROM todos WHERE id = ?", [id], (err, rows) => {
         if (err) return res.status(500).json({ error: "データ取得エラー" });
-
         if (rows.length === 0) return res.status(404).json({ error: "Todoが見つかりません" });
-
-        const currentCompleted = rows[0].completed;
-        const newCompleted = currentCompleted ? 0 : 1; // 0 ⇄ 1 のトグル
-
-        // `completed` の値を更新
+        const newCompleted = !rows[0].completed;
         db.query("UPDATE todos SET completed = ? WHERE id = ?", [newCompleted, id], (err) => {
-            if (err) return res.status(500).json({ error: "更新エラー" });
-
-            // 更新後のデータをフロントに返す
-            res.json({ id, completed: newCompleted });
+            if (err) return res.status(500).json({ error: err });
+            res.json({ id: req.params.id, completed: newCompleted });
         });
     });
 });
 
-app.listen(5000, () => console.log("Server is running on http://localhost:5000"));
+app.listen(5000, () => {
+    console.log("Server running on port 5000");
+});
